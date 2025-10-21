@@ -4,7 +4,7 @@ import api from "../api/api";
 const initialState = {
   token: null,
   walletAddress: null,
-  user: null, // includes name, walletAddress, role
+  user: null,
   loading: false,
   error: null,
 };
@@ -13,7 +13,11 @@ export const login = createAsyncThunk(
   "auth/login",
   async ({ walletAddress, signature }, { rejectWithValue }) => {
     try {
-      const response = await api.post("/login", { walletAddress, signature });
+      const response = await api.post("auth/login", {
+        walletAddress,
+        signature,
+      });
+
       // backend returns: { status, data: { token, user }, message }
       return response.data.data;
     } catch (error) {
@@ -34,9 +38,7 @@ const authSlice = createSlice({
       state.user = null;
       state.loading = false;
       state.error = null;
-
-      //Clear entire persisted store
-      localStorage.removeItem("persist:root");
+      localStorage.removeItem("persist:root"); // Clear persisted state
     },
   },
   extraReducers: (builder) => {
@@ -49,7 +51,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.token = action.payload.token;
         state.walletAddress = action.payload.user.walletAddress;
-        state.user = action.payload.user; // contains role, name, walletAddress
+        state.user = action.payload.user;
         state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
@@ -62,7 +64,7 @@ const authSlice = createSlice({
 export const { logout } = authSlice.actions;
 export const authReducer = authSlice.reducer;
 
-//Selectors
+// Selectors
 export const selectAuthToken = (state) => state.auth.token;
 export const selectAuthUser = (state) => state.auth.user;
 export const selectAuthRole = (state) => state.auth.user?.role;

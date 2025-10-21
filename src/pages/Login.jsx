@@ -22,72 +22,62 @@ const Login = () => {
         return;
       }
 
-      //Connect MetaMask
-      const accounts = await window.ethereum.request({
+      // Request wallet connection
+      const [walletAddress] = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      const walletAddress = accounts[0];
+
       if (!walletAddress) {
-        toast.error("Failed to connect MetaMask wallet.");
+        toast.error("MetaMask wallet not connected!");
         return;
       }
 
-      //Get nonce from backend
-      const nonceRes = await api.post("/nonce", { walletAddress });
-      const nonce = nonceRes.data.nonce || nonceRes.data.data?.nonce;
+      // Get nonce from backend
+      const { data } = await api.post("auth/nonce", { walletAddress });
+      const nonce = data?.nonce;
       if (!nonce) {
-        toast.error("Nonce not received from backend.");
+        toast.error("Nonce not received from server!");
         return;
       }
 
-      //Sign nonce (must match backend’s expected format)
+      // Sign message using MetaMask
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const signature = await signer.signMessage(`Sign this nonce: ${nonce}`);
 
-      //Dispatch login action
-      const resultAction = await dispatch(login({ walletAddress, signature }));
+      // Dispatch login thunk
+      const result = await dispatch(login({ walletAddress, signature }));
 
-      if (login.fulfilled.match(resultAction)) {
-        const user = resultAction.payload.user;
-        toast.success(`Welcome back, ${user.name || user.walletAddress}!`);
+      if (login.fulfilled.match(result)) {
+        const user = result.payload.user;
+        toast.success(`Welcome ${user.name}!`);
 
-        //Role-based redirect
-        switch (user.role) {
-          case "admin":
-            navigate("/a");
-            break;
-          case "doctor":
-            navigate("/d");
-            break;
-          case "patient":
-            navigate("/p");
-            break;
-          default:
-            navigate("/");
-        }
+        // Redirect based on role
+        if (user.role === "admin") navigate("/a");
+        else if (user.role === "doctor") navigate("/d");
+        else navigate("/p");
       } else {
-        toast.error(resultAction.payload || "Login failed!");
+        toast.error(result.payload || "Login failed!");
       }
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Login Error:", err);
       if (err.code === 4001) {
-        toast.error("MetaMask signature rejected.");
+        toast.error("Signature request rejected.");
       } else {
-        toast.error(err.response?.data?.message || "Login failed.");
+        toast.error("Login failed. Please try again.");
       }
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-y-4 h-screen">
-      <h1 className="text-2xl font-bold">Login</h1>
+    <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <h1 className="text-3xl font-semibold">Login</h1>
       <button
-        disabled={loading}
         onClick={handleLogin}
-        className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+        disabled={loading}
+        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition disabled:opacity-60"
       >
-        {loading ? "Logging in..." : "Login with MetaMask"}
+        {loading ? "Connecting..." : "Login with MetaMask"}
       </button>
     </div>
   );

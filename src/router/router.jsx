@@ -9,6 +9,7 @@ import AdminDashboard from "../pages/AdminDashboard";
 import DoctorDashboard from "../pages/DoctorDashboard";
 import PatientDashboard from "../pages/PatientDashboard";
 import ProtectedRoute from "../components/ProtectedRoute";
+import AddReport from "../pages/AddReport";
 
 const router = createBrowserRouter([
   {
@@ -63,6 +64,7 @@ const router = createBrowserRouter([
             element: <PatientLayout />,
             children: [
               { index: true, element: <PatientDashboard /> },
+              { path: "add-report", element: <AddReport /> },
               //{ path: "dashboard", element: <div>Admin student</div> },
             ],
           },

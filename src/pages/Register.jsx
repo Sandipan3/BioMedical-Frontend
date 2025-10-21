@@ -12,9 +12,13 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post("/register", { name, walletAddress, role });
+      const res = await api.post("auth/register", {
+        name,
+        walletAddress,
+        role,
+      });
       if (res.data.status === "success") {
-        toast.success(res.data.data.message);
+        toast.success(res.data.message);
         navigate("/login");
       }
     } catch (error) {
