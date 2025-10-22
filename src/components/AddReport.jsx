@@ -1,18 +1,17 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useSelector } from "react-redux";
 import { selectAuthUser } from "../slices/authSlice";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 
-const AddReport = () => {
+const AddReport = ({ onUploadSuccess }) => {
   const user = useSelector(selectAuthUser);
   const [file, setFile] = useState(null);
-  const navigate = useNavigate();
+  const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (e) => {
     e.preventDefault();
+
     if (!file) return toast.error("Please select a file first!");
     if (!user || !user._id)
       return toast.error("User not found. Please log in again.");
@@ -23,20 +22,26 @@ const AddReport = () => {
     formData.append("uploadedBy", user.role);
 
     try {
+      setUploading(true);
       const { data } = await api.post("document/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       toast.success(`Uploaded: ${data.data.filename}`);
-      setTimeout(() => navigate("/p"), 2000);
+      setFile(null);
+
+      // Notify parent to refresh documents
+      if (onUploadSuccess) onUploadSuccess();
     } catch (error) {
       console.error(error);
       toast.error("Upload failed");
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <div className="p-8 max-w-md mx-auto">
+    <div className="p-8 max-w-md mx-auto bg-white rounded-lg shadow-md">
       <h2 className="text-xl font-bold mb-4 text-center">Upload Report</h2>
       <form onSubmit={handleUpload} className="flex flex-col gap-4">
         <input
@@ -45,16 +50,17 @@ const AddReport = () => {
           onChange={(e) => setFile(e.target.files[0])}
           className="border p-2 rounded"
         />
+
         <button
-          disabled={!file}
+          disabled={!file || uploading}
           type="submit"
-          className={`p-2 rounded text-white ${
-            file
-              ? "bg-blue-600 hover:bg-blue-700"
-              : "bg-gray-400 cursor-not-allowed"
+          className={`p-2 rounded text-white transition ${
+            uploading || !file
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
           }`}
         >
-          Upload
+          {uploading ? "Uploading..." : "Upload"}
         </button>
       </form>
     </div>
